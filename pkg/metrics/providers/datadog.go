@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
 )
 
@@ -33,6 +35,7 @@ type DatadogProvider struct {
 	metricsQueryEndpoint     string
 	apiKeyValidationEndpoint string
 
+	logger         *zap.SugaredLogger
 	timeout        time.Duration
 	apiKey         string
 	applicationKey string
@@ -47,9 +50,8 @@ type datadogResponse struct {
 
 // NewDatadogProvider takes a canary spec, a provider spec and the credentials map, and
 // returns a Datadog client ready to execute queries against the API
-func NewDatadogProvider(metricInterval string,
-	provider flaggerv1.MetricTemplateProvider,
-	credentials map[string][]byte) (*DatadogProvider, error) {
+func NewDatadogProvider(logger *zap.SugaredLogger, metricInterval string,
+	provider flaggerv1.MetricTemplateProvider, credentials map[string][]byte) (*DatadogProvider, error) {
 
 	address := provider.Address
 	if address == "" {
@@ -57,6 +59,7 @@ func NewDatadogProvider(metricInterval string,
 	}
 
 	dd := DatadogProvider{
+		logger:                   logger.With("datadog"),
 		timeout:                  5 * time.Second,
 		metricsQueryEndpoint:     address + datadogMetricsQueryPath,
 		apiKeyValidationEndpoint: address + datadogAPIKeyValidationPath,
@@ -86,6 +89,7 @@ func NewDatadogProvider(metricInterval string,
 // RunQuery executes the datadog query against DatadogProvider.metricsQueryEndpoint
 // and returns the the first result as float64
 func (p *DatadogProvider) RunQuery(query string) (float64, error) {
+	p.logger.Debugf("Querying %q...", query)
 
 	req, err := http.NewRequest("GET", p.metricsQueryEndpoint, nil)
 	if err != nil {

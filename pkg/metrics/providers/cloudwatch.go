@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"go.uber.org/zap"
 
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
 )
@@ -20,6 +21,7 @@ const (
 )
 
 type CloudWatchProvider struct {
+	logger     *zap.SugaredLogger
 	client     cloudWatchClient
 	startDelta time.Duration
 }
@@ -31,7 +33,7 @@ type cloudWatchClient interface {
 
 // NewCloudWatchProvider takes a metricInterval, a provider spec and the credentials map, and
 // returns a cloudWatchProvider ready to execute queries against the AWS CloudWatch metrics
-func NewCloudWatchProvider(metricInterval string, provider flaggerv1.MetricTemplateProvider) (*CloudWatchProvider, error) {
+func NewCloudWatchProvider(logger *zap.SugaredLogger, metricInterval string, provider flaggerv1.MetricTemplateProvider) (*CloudWatchProvider, error) {
 	if provider.Region == "" {
 		return nil, fmt.Errorf("region not specified")
 	}
@@ -49,6 +51,7 @@ func NewCloudWatchProvider(metricInterval string, provider flaggerv1.MetricTempl
 	}
 
 	return &CloudWatchProvider{
+		logger:     logger.With("cloudwatch"),
 		client:     cloudwatch.New(sess),
 		startDelta: cloudWatchStartDeltaMultiplierOnMetricInterval * md,
 	}, err
@@ -57,6 +60,8 @@ func NewCloudWatchProvider(metricInterval string, provider flaggerv1.MetricTempl
 // RunQuery executes the aws cloud watch metrics query against GetMetricData endpoint
 // and returns the the first result as float64
 func (p *CloudWatchProvider) RunQuery(query string) (float64, error) {
+	p.logger.Debugf("Querying %q...", query)
+
 	var cq []*cloudwatch.MetricDataQuery
 	if err := json.Unmarshal([]byte(query), &cq); err != nil {
 		return 0, fmt.Errorf("error unmarshaling query: %s", err.Error())

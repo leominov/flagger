@@ -12,11 +12,14 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
 )
 
 // PrometheusProvider executes promQL queries
 type PrometheusProvider struct {
+	logger   *zap.SugaredLogger
 	timeout  time.Duration
 	url      url.URL
 	username string
@@ -37,13 +40,14 @@ type prometheusResponse struct {
 // NewPrometheusProvider takes a provider spec and the credentials map,
 // validates the address, extracts the username and password values if provided and
 // returns a Prometheus client ready to execute queries against the API
-func NewPrometheusProvider(provider flaggerv1.MetricTemplateProvider, credentials map[string][]byte) (*PrometheusProvider, error) {
+func NewPrometheusProvider(logger *zap.SugaredLogger, provider flaggerv1.MetricTemplateProvider, credentials map[string][]byte) (*PrometheusProvider, error) {
 	promURL, err := url.Parse(provider.Address)
 	if provider.Address == "" || err != nil {
 		return nil, fmt.Errorf("%s address %s is not a valid URL", provider.Type, provider.Address)
 	}
 
 	prom := PrometheusProvider{
+		logger:  logger.With("prometheus"),
 		timeout: 5 * time.Second,
 		url:     *promURL,
 	}
@@ -67,6 +71,8 @@ func NewPrometheusProvider(provider flaggerv1.MetricTemplateProvider, credential
 
 // RunQuery executes the promQL query and returns the the first result as float64
 func (p *PrometheusProvider) RunQuery(query string) (float64, error) {
+	p.logger.Debugf("Querying %q...", query)
+
 	if p.url.String() == "fake" {
 		return 100, nil
 	}
