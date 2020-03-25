@@ -3,6 +3,8 @@ package observers
 import (
 	"strings"
 
+	"go.uber.org/zap"
+
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
 	"github.com/weaveworks/flagger/pkg/metrics/providers"
 )
@@ -11,8 +13,8 @@ type Factory struct {
 	Client providers.Interface
 }
 
-func NewFactory(metricsServer string) (*Factory, error) {
-	client, err := providers.NewPrometheusProvider(flaggerv1.MetricTemplateProvider{
+func NewFactory(logger *zap.SugaredLogger, metricsServer string) (*Factory, error) {
+	client, err := providers.NewPrometheusProvider(logger, flaggerv1.MetricTemplateProvider{
 		Type:      "prometheus",
 		Address:   metricsServer,
 		SecretRef: nil,

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
+	"github.com/weaveworks/flagger/pkg/logger"
 	"github.com/weaveworks/flagger/pkg/metrics/providers"
 )
 
@@ -25,7 +26,9 @@ func TestGlooObserver_GetRequestSuccessRate(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client, err := providers.NewPrometheusProvider(flaggerv1.MetricTemplateProvider{
+	logger, _ := logger.NewLogger("debug")
+
+	client, err := providers.NewPrometheusProvider(logger, flaggerv1.MetricTemplateProvider{
 		Type:      "prometheus",
 		Address:   ts.URL,
 		SecretRef: nil,
@@ -59,7 +62,9 @@ func TestGlooObserver_GetRequestDuration(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client, err := providers.NewPrometheusProvider(flaggerv1.MetricTemplateProvider{
+	logger, _ := logger.NewLogger("debug")
+
+	client, err := providers.NewPrometheusProvider(logger, flaggerv1.MetricTemplateProvider{
 		Type:      "prometheus",
 		Address:   ts.URL,
 		SecretRef: nil,

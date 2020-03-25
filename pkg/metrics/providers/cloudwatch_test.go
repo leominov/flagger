@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
+	"github.com/weaveworks/flagger/pkg/logger"
 )
 
 type cloudWatchClientMock struct {
@@ -26,8 +27,11 @@ func (c cloudWatchClientMock) GetMetricData(_ *cloudwatch.GetMetricDataInput) (*
 }
 
 func TestNewCloudWatchProvider(t *testing.T) {
+	logger, _ := logger.NewLogger("debug")
+
 	t.Run("ok", func(t *testing.T) {
 		p, err := NewCloudWatchProvider(
+			logger,
 			"5m",
 			flaggerv1.MetricTemplateProvider{
 				Region: costandusagereportservice.AWSRegionApEast1,
@@ -38,7 +42,7 @@ func TestNewCloudWatchProvider(t *testing.T) {
 	})
 
 	t.Run("ng", func(t *testing.T) {
-		_, err := NewCloudWatchProvider("5m", flaggerv1.MetricTemplateProvider{})
+		_, err := NewCloudWatchProvider(logger, "5m", flaggerv1.MetricTemplateProvider{})
 		assert.Error(t, err, "error expected since region was not specified")
 	})
 }
@@ -72,6 +76,8 @@ func TestCloudWatchProvider_IsOnline(t *testing.T) {
 }
 
 func TestCloudWatchProvider_RunQuery(t *testing.T) {
+	logger, _ := logger.NewLogger("debug")
+
 	// ref: https://aws.amazon.com/premiumsupport/knowledge-center/cloudwatch-getmetricdata-api/
 	query := `
 [
@@ -122,7 +128,7 @@ func TestCloudWatchProvider_RunQuery(t *testing.T) {
 
 	t.Run("ok", func(t *testing.T) {
 		var exp float64 = 100
-		p := CloudWatchProvider{client: cloudWatchClientMock{
+		p := CloudWatchProvider{logger: logger, client: cloudWatchClientMock{
 			o: &cloudwatch.GetMetricDataOutput{
 				MetricDataResults: []*cloudwatch.MetricDataResult{
 					{Values: []*float64{aws.Float64(exp)}},
@@ -136,7 +142,7 @@ func TestCloudWatchProvider_RunQuery(t *testing.T) {
 	})
 
 	t.Run("no values", func(t *testing.T) {
-		p := CloudWatchProvider{client: cloudWatchClientMock{
+		p := CloudWatchProvider{logger: logger, client: cloudWatchClientMock{
 			o: &cloudwatch.GetMetricDataOutput{
 				MetricDataResults: []*cloudwatch.MetricDataResult{
 					{Values: []*float64{}},
@@ -148,7 +154,7 @@ func TestCloudWatchProvider_RunQuery(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrNoValuesFound))
 
-		p = CloudWatchProvider{client: cloudWatchClientMock{
+		p = CloudWatchProvider{logger: logger, client: cloudWatchClientMock{
 			o: &cloudwatch.GetMetricDataOutput{}}}
 
 		_, err = p.RunQuery(query)

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
+	"github.com/weaveworks/flagger/pkg/logger"
 )
 
 func TestNewDatadogProvider(t *testing.T) {
@@ -23,11 +24,13 @@ func TestNewDatadogProvider(t *testing.T) {
 		datadogAPIKeySecretKey:         []byte(apiKey),
 	}
 
+	logger, _ := logger.NewLogger("debug")
+
 	mi := "100s"
 	md, err := time.ParseDuration(mi)
 	require.NoError(t, err)
 
-	dp, err := NewDatadogProvider("100s", flaggerv1.MetricTemplateProvider{}, cs)
+	dp, err := NewDatadogProvider(logger, "100s", flaggerv1.MetricTemplateProvider{}, cs)
 	require.NoError(t, err)
 	assert.Equal(t, "https://api.datadoghq.com/api/v1/validate", dp.apiKeyValidationEndpoint)
 	assert.Equal(t, "https://api.datadoghq.com/api/v1/query", dp.metricsQueryEndpoint)
@@ -39,6 +42,7 @@ func TestNewDatadogProvider(t *testing.T) {
 func TestDatadogProvider_RunQuery(t *testing.T) {
 	appKey := "app-key"
 	apiKey := "api-key"
+	logger, _ := logger.NewLogger("debug")
 	t.Run("ok", func(t *testing.T) {
 		expected := 1.11111
 		eq := `avg:system.cpu.user{*}by{host}`
@@ -64,7 +68,8 @@ func TestDatadogProvider_RunQuery(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		dp, err := NewDatadogProvider("1m",
+		dp, err := NewDatadogProvider(logger,
+			"1m",
 			flaggerv1.MetricTemplateProvider{Address: ts.URL},
 			map[string][]byte{
 				datadogApplicationKeySecretKey: []byte(appKey),
@@ -85,7 +90,8 @@ func TestDatadogProvider_RunQuery(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		dp, err := NewDatadogProvider("1m",
+		dp, err := NewDatadogProvider(logger,
+			"1m",
 			flaggerv1.MetricTemplateProvider{Address: ts.URL},
 			map[string][]byte{
 				datadogApplicationKeySecretKey: []byte(appKey),
@@ -99,6 +105,7 @@ func TestDatadogProvider_RunQuery(t *testing.T) {
 }
 
 func TestDatadogProvider_IsOnline(t *testing.T) {
+	logger, _ := logger.NewLogger("debug")
 	for _, c := range []struct {
 		code        int
 		errExpected bool
@@ -116,7 +123,8 @@ func TestDatadogProvider_IsOnline(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			dp, err := NewDatadogProvider("1m",
+			dp, err := NewDatadogProvider(logger,
+				"1m",
 				flaggerv1.MetricTemplateProvider{Address: ts.URL},
 				map[string][]byte{
 					datadogApplicationKeySecretKey: []byte(appKey),

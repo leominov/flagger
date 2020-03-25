@@ -17,6 +17,7 @@ import (
 	flaggerv1 "github.com/weaveworks/flagger/pkg/apis/flagger/v1beta1"
 	clientset "github.com/weaveworks/flagger/pkg/client/clientset/versioned"
 	fakeFlagger "github.com/weaveworks/flagger/pkg/client/clientset/versioned/fake"
+	"github.com/weaveworks/flagger/pkg/logger"
 )
 
 type fakeClients struct {
@@ -75,7 +76,9 @@ func TestNewPrometheusProvider(t *testing.T) {
 	secret, err := clients.kubeClient.CoreV1().Secrets("default").Get("prometheus", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	prom, err := NewPrometheusProvider(template.Spec.Provider, secret.Data)
+	logger, _ := logger.NewLogger("debug")
+
+	prom, err := NewPrometheusProvider(logger, template.Spec.Provider, secret.Data)
 	require.NoError(t, err)
 
 	assert.Equal(t, "http://prometheus:9090", prom.url.String())
@@ -83,6 +86,7 @@ func TestNewPrometheusProvider(t *testing.T) {
 }
 
 func TestPrometheusProvider_RunQueryWithBasicAuth(t *testing.T) {
+	logger, _ := logger.NewLogger("debug")
 	t.Run("ok", func(t *testing.T) {
 		expected := `sum(envoy_cluster_upstream_rq)`
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +115,7 @@ func TestPrometheusProvider_RunQueryWithBasicAuth(t *testing.T) {
 		secret, err := clients.kubeClient.CoreV1().Secrets("default").Get("prometheus", metav1.GetOptions{})
 		require.NoError(t, err)
 
-		prom, err := NewPrometheusProvider(template.Spec.Provider, secret.Data)
+		prom, err := NewPrometheusProvider(logger, template.Spec.Provider, secret.Data)
 		require.NoError(t, err)
 
 		val, err := prom.RunQuery(template.Spec.Query)
@@ -137,7 +141,7 @@ func TestPrometheusProvider_RunQueryWithBasicAuth(t *testing.T) {
 		secret, err := clients.kubeClient.CoreV1().Secrets("default").Get("prometheus", metav1.GetOptions{})
 		require.NoError(t, err)
 
-		prom, err := NewPrometheusProvider(template.Spec.Provider, secret.Data)
+		prom, err := NewPrometheusProvider(logger, template.Spec.Provider, secret.Data)
 		require.NoError(t, err)
 
 		_, err = prom.RunQuery(template.Spec.Query)
@@ -158,7 +162,9 @@ func TestPrometheusProvider_IsOnline(t *testing.T) {
 	template.Spec.Provider.Address = ts.URL
 	template.Spec.Provider.SecretRef = nil
 
-	prom, err := NewPrometheusProvider(template.Spec.Provider, nil)
+	logger, _ := logger.NewLogger("debug")
+
+	prom, err := NewPrometheusProvider(logger, template.Spec.Provider, nil)
 	require.NoError(t, err)
 
 	ok, err := prom.IsOnline()
