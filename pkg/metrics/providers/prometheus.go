@@ -71,7 +71,7 @@ func NewPrometheusProvider(logger *zap.SugaredLogger, provider flaggerv1.MetricT
 
 // RunQuery executes the promQL query and returns the the first result as float64
 func (p *PrometheusProvider) RunQuery(query string) (float64, error) {
-	p.logger.Debugf("Querying %q...", query)
+	p.logger.Debugf("RunQuery: %s", query)
 
 	if p.url.String() == "fake" {
 		return 100, nil
@@ -90,6 +90,8 @@ func (p *PrometheusProvider) RunQuery(query string) (float64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("http.NewRequest failed: %w", err)
 	}
+
+	p.logger.Debugf("http.Get: %s", u.String())
 
 	if p.username != "" && p.password != "" {
 		req.SetBasicAuth(p.username, p.password)

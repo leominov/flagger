@@ -89,7 +89,7 @@ func NewDatadogProvider(logger *zap.SugaredLogger, metricInterval string,
 // RunQuery executes the datadog query against DatadogProvider.metricsQueryEndpoint
 // and returns the the first result as float64
 func (p *DatadogProvider) RunQuery(query string) (float64, error) {
-	p.logger.Debugf("Querying %q...", query)
+	p.logger.Debugf("RunQuery: %s", query)
 
 	req, err := http.NewRequest("GET", p.metricsQueryEndpoint, nil)
 	if err != nil {

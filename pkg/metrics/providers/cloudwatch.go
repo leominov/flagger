@@ -60,7 +60,7 @@ func NewCloudWatchProvider(logger *zap.SugaredLogger, metricInterval string, pro
 // RunQuery executes the aws cloud watch metrics query against GetMetricData endpoint
 // and returns the the first result as float64
 func (p *CloudWatchProvider) RunQuery(query string) (float64, error) {
-	p.logger.Debugf("Querying %q...", query)
+	p.logger.Debugf("RunQuery: %s", query)
 
 	var cq []*cloudwatch.MetricDataQuery
 	if err := json.Unmarshal([]byte(query), &cq); err != nil {
